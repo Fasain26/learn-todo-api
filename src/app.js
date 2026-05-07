@@ -1,6 +1,7 @@
-// src/app.js
 require('dotenv').config()
 const express = require('express')
+const helmet = require('helmet')
+const rateLimit = require('express-rate-limit')
 const AppError = require('./utils/AppError')
 const authRoutes = require('./routes/auth.routes')
 const todoRoutes = require('./routes/todo.routes')
@@ -9,11 +10,35 @@ const logger = require('./middleware/logger')
 
 const app = express()
 
-// Middleware — order matters
-app.use(express.json())
-app.use(logger)          // log every request
+// Security
+app.use(helmet())
 
-// Routes
+// Rate limiters
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: {
+    status: 'error',
+    message: 'Too many requests, please try again later'
+  }
+})
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: {
+    status: 'error',
+    message: 'Too many login attempts, please try again later'
+  }
+})
+
+app.use(generalLimiter)
+
+// Middleware
+app.use(express.json())
+app.use(logger)
+
+// Base routes
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'success',
@@ -29,15 +54,16 @@ app.get('/health', (req, res) => {
   })
 })
 
-app.use('/auth', authRoutes)
+// API routes
+app.use('/auth', authLimiter, authRoutes)
 app.use('/api/todos', todoRoutes)
 
-// Unknown routes — must be after all real routes
+// Unknown routes
 app.use((req, res, next) => {
   next(new AppError(`Route ${req.method} ${req.url} not found`, 404))
 })
 
-// Global error handler — must be last, always
+// Global error handler — must be last
 app.use(errorHandler)
 
 const PORT = process.env.PORT || 3000

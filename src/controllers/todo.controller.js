@@ -41,15 +41,12 @@ const getOne = async (req, res, next) => {
 
 const createTodo = async (req, res, next) => {
   try {
-    const { title } = req.body
-    if (!title || title.trim() === '') {
-      throw new AppError('Title is required', 400)
-    }
+    const { title } = req.body  // guaranteed valid by middleware
 
     const todo = await prisma.todo.create({
       data: {
         title: title.trim(),
-        userId: req.user.userId  // attach to logged-in user
+        userId: req.user.userId
       }
     })
 
