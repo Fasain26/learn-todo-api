@@ -2,7 +2,7 @@
 require('dotenv').config()
 const express = require('express')
 const AppError = require('./utils/AppError')
-
+const authRoutes = require('./routes/auth.routes')
 const todoRoutes = require('./routes/todo.routes')
 const errorHandler = require('./middleware/errorHandler')
 const logger = require('./middleware/logger')
@@ -29,6 +29,7 @@ app.get('/health', (req, res) => {
   })
 })
 
+app.use('/auth', authRoutes)
 app.use('/api/todos', todoRoutes)
 
 // Unknown routes — must be after all real routes

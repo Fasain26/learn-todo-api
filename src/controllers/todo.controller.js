@@ -5,6 +5,7 @@ const AppError = require('../utils/AppError')
 const getAll = async (req, res, next) => {
   try {
     const todos = await prisma.todo.findMany({
+      where: { userId: req.user.userId },
       orderBy: { createdAt: 'desc' }
     })
 
@@ -21,10 +22,13 @@ const getAll = async (req, res, next) => {
 const getOne = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id)
-    if (isNaN(id)) throw new AppError('Invalid ID — must be a number', 400)
+    if (isNaN(id)) throw new AppError('Invalid ID', 400)
 
-    const todo = await prisma.todo.findUnique({
-      where: { id }
+    const todo = await prisma.todo.findFirst({
+      where: {
+        id,
+        userId: req.user.userId  // can only see your own todos
+      }
     })
 
     if (!todo) throw new AppError(`Todo with id ${id} not found`, 404)
@@ -37,8 +41,6 @@ const getOne = async (req, res, next) => {
 
 const createTodo = async (req, res, next) => {
   try {
-    if (!req.body) throw new AppError('Request body is required', 400)
-
     const { title } = req.body
     if (!title || title.trim() === '') {
       throw new AppError('Title is required', 400)
@@ -46,7 +48,8 @@ const createTodo = async (req, res, next) => {
 
     const todo = await prisma.todo.create({
       data: {
-        title: title.trim()
+        title: title.trim(),
+        userId: req.user.userId  // attach to logged-in user
       }
     })
 
@@ -59,9 +62,12 @@ const createTodo = async (req, res, next) => {
 const updateTodo = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id)
-    if (isNaN(id)) throw new AppError('Invalid ID — must be a number', 400)
+    if (isNaN(id)) throw new AppError('Invalid ID', 400)
 
-    const existing = await prisma.todo.findUnique({ where: { id } })
+    const existing = await prisma.todo.findFirst({
+      where: { id, userId: req.user.userId }
+    })
+
     if (!existing) throw new AppError(`Todo with id ${id} not found`, 404)
 
     const { title, completed } = req.body
@@ -83,9 +89,12 @@ const updateTodo = async (req, res, next) => {
 const deleteTodo = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id)
-    if (isNaN(id)) throw new AppError('Invalid ID — must be a number', 400)
+    if (isNaN(id)) throw new AppError('Invalid ID', 400)
 
-    const existing = await prisma.todo.findUnique({ where: { id } })
+    const existing = await prisma.todo.findFirst({
+      where: { id, userId: req.user.userId }
+    })
+
     if (!existing) throw new AppError(`Todo with id ${id} not found`, 404)
 
     await prisma.todo.delete({ where: { id } })
