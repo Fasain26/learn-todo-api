@@ -4,15 +4,48 @@ const AppError = require('../utils/AppError')
 
 const getAll = async (req, res, next) => {
   try {
-    const todos = await prisma.todo.findMany({
-      where: { userId: req.user.userId },
-      orderBy: { createdAt: 'desc' }
-    })
+    // Read pagination params from query string
+    // Default: page 1, 10 items per page
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+
+    // Validate pagination params
+    if (page < 1) throw new AppError('Page must be at least 1', 400)
+    if (limit < 1 || limit > 100) {
+      throw new AppError('Limit must be between 1 and 100', 400)
+    }
+
+    const skip = (page - 1) * limit
+
+    // Run two queries in parallel — data and total count
+    const [todos, total] = await Promise.all([
+      prisma.todo.findMany({
+        where: { userId: req.user.userId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.todo.count({
+        where: { userId: req.user.userId }
+      })
+    ])
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit)
+    const hasNextPage = page < totalPages
+    const hasPrevPage = page > 1
 
     res.status(200).json({
       status: 'success',
-      count: todos.length,
-      data: todos
+      data: todos,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
+      }
     })
   } catch (err) {
     next(err)
