@@ -7,7 +7,8 @@ const authRoutes = require('./routes/auth.routes')
 const todoRoutes = require('./routes/todo.routes')
 const errorHandler = require('./middleware/errorHandler')
 const logger = require('./middleware/logger')
-
+const swaggerUi = require('swagger-ui-express')
+const swaggerSpec = require('./utils/swagger')
 const app = express()
 
 // Security
@@ -57,6 +58,8 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/auth', authLimiter, authRoutes)
 app.use('/api/todos', todoRoutes)
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Unknown routes
 app.use((req, res, next) => {
