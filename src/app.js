@@ -15,9 +15,10 @@ const app = express()
 
 app.use(helmet())
 
+// Rate limiters — disabled in test environment
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'test' ? 10000 : 100,
   message: {
     status: 'error',
     message: 'Too many requests, please try again later'
@@ -26,7 +27,7 @@ const generalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: process.env.NODE_ENV === 'test' ? 10000 : 10,
   message: {
     status: 'error',
     message: 'Too many login attempts, please try again later'
