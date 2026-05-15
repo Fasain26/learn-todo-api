@@ -58,6 +58,17 @@ const options = {
   apis: ['./src/routes/*.js']
 }
 
+servers: [
+  {
+    url: 'http://localhost:3000',
+    description: 'Development server'
+  },
+  {
+    url: 'https://learn-todo-api-production.up.railway.app',
+    description: 'Production server'
+  }
+]
+
 const swaggerSpec = swaggerJsdoc(options)
 
 module.exports = swaggerSpec
